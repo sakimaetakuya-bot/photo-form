@@ -10,9 +10,15 @@
     h2 { text-align: center; color: #00c73c; }
     .photo-section { margin-bottom: 25px; padding: 15px; border: 1px solid #ddd; border-radius: 6px; }
     .photo-section h3 { margin-top: 0; font-size: 16px; }
-    .upload-btn { display: block; width: 100%; padding: 12px; background-color: #007bff; color: white; text-align: center; border-radius: 4px; cursor: pointer; font-weight: bold; box-sizing: border-box; }
+    .upload-btn { display: block; width: 100%; padding: 12px; background-color: #007bff; color: white; text-align: center; border-radius: 4px; cursor: pointer; font-weight: bold; box-sizing: border-box; margin-bottom: 10px; }
     input[type="file"] { display: none; }
-    .preview { width: 100%; max-height: 200px; object-fit: contain; margin-top: 10px; display: none; border-radius: 4px; }
+    
+    /* プレビューエリアのスタイル */
+    .preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .preview-wrapper { position: relative; width: 80px; height: 80px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
+    .preview-img { width: 100%; height: 100%; object-fit: cover; }
+    .delete-btn { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: rgba(255,0,0,0.8); color: white; border: none; border-radius: 50%; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; pading: 0; }
+    
     .submit-btn { width: 100%; padding: 15px; background-color: #00c73c; color: white; border: none; border-radius: 4px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     .submit-btn:disabled { background-color: #cccccc; cursor: not-allowed; }
     .loading { display: none; text-align: center; font-weight: bold; color: #666; margin-top: 10px; }
@@ -22,85 +28,123 @@
 
 <div class="container" id="formContainer">
   <h2>写真提出フォーム</h2>
-  <p style="font-size: 12px; color: red; text-align: center;">※3種類すべての撮影が必要です</p>
+  <p style="font-size: 12px; color: red; text-align: center;">※3種類すべての撮影が必要です（各枚数無制限）</p>
   
   <form id="photoForm">
     <div class="photo-section">
       <h3>① 素材1の撮影 <span style="color:red;">*</span></h3>
       <label class="upload-btn">
-        写真を撮影する
-        <input type="file" accept="image/*" capture="environment" id="file1" onchange="previewImage(this, 'preview1')">
+        写真を撮影・追加する
+        <input type="file" accept="image/*" capture="environment" multiple id="file1" onchange="addImages(this, 'material1')">
       </label>
-      <img id="preview1" class="preview">
+      <div id="previewArea_material1" class="preview-container"></div>
     </div>
 
     <div class="photo-section">
       <h3>② 素材2の撮影 <span style="color:red;">*</span></h3>
       <label class="upload-btn">
-        写真を撮影する
-        <input type="file" accept="image/*" capture="environment" id="file2" onchange="previewImage(this, 'preview2')">
+        写真を撮影・追加する
+        <input type="file" accept="image/*" capture="environment" multiple id="file2" onchange="addImages(this, 'material2')">
       </label>
-      <img id="preview2" class="preview">
+      <div id="previewArea_material2" class="preview-container"></div>
     </div>
 
     <div class="photo-section">
       <h3>③ 素材3の撮影 <span style="color:red;">*</span></h3>
       <label class="upload-btn">
-        写真を撮影する
-        <input type="file" accept="image/*" capture="environment" id="file3" onchange="previewImage(this, 'preview3')">
+        写真を撮影・追加する
+        <input type="file" accept="image/*" capture="environment" multiple id="file3" onchange="addImages(this, 'material3')">
       </label>
-      <img id="preview3" class="preview">
+      <div id="previewArea_material3" class="preview-container"></div>
     </div>
 
     <button type="button" class="submit-btn" id="submitBtn" onclick="submitForm()" disabled>連動して送信する</button>
-    <div class="loading" id="loadingMsg">送信中...ブラウザを閉じずに待ってください。</div>
+    <div class="loading" id="loadingMsg">送信中...枚数が多いと時間がかかります。そのままお待ちください。</div>
   </form>
 </div>
 
 <script>
   // 【最重要】ここに新しくデプロイしたGASのWebアプリURL（/exec）を貼り付けてください
-  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw7IpV_NSMNtmJJeeEfz5waWMJcDX-2RCMn1TC95PCPHI83ayWOc0c0l_tef4XMZHgr/exec';
+  const GAS_WEB_APP_URL = 'ここにGASの新しいURLをペースト';
 
-  const imagesData = { material1: null, material2: null, material3: null };
+  // 画像データを配列で管理する構造に変更
+  const imagesData = { material1: [], material2: [], material3: [] };
 
-  function previewImage(input, previewId) {
-    const file = input.files[0];
-    if (file) {
+  // 画像の追加処理
+  function addImages(input, type) {
+    const files = input.files;
+    if (!files.length) return;
+
+    Array.from(files).forEach(file => {
       const reader = new FileReader();
       reader.onload = function(e) {
-        const preview = document.getElementById(previewId);
-        preview.src = e.target.result;
-        preview.style.display = 'block';
-        
-        if (previewId === 'preview1') imagesData.material1 = e.target.result;
-        if (previewId === 'preview2') imagesData.material2 = e.target.result;
-        if (previewId === 'preview3') imagesData.material3 = e.target.result;
-        
+        // データを配列に追加
+        imagesData[type].push(e.target.result);
+        // プレビューを再描画
+        renderPreviews(type);
+        // 必須チェック
         checkFormValidity();
       }
       reader.readAsDataURL(file);
-    }
+    });
+    // 同じファイルを連続で選択しても反応するようにリセット
+    input.value = '';
   }
 
+  // プレビュー画面の描画
+  function renderPreviews(type) {
+    const container = document.getElementById(`previewArea_${type}`);
+    container.innerHTML = ''; // 一旦クリア
+
+    imagesData[type].forEach((base64Data, index) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'preview-wrapper';
+
+      const img = document.createElement('img');
+      img.src = base64Data;
+      img.className = 'preview-img';
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.innerHTML = '×';
+      deleteBtn.onclick = function(e) {
+        e.preventDefault();
+        removeImage(type, index);
+      };
+
+      wrapper.appendChild(img);
+      wrapper.appendChild(deleteBtn);
+      container.appendChild(wrapper);
+    });
+  }
+
+  // 画像の削除処理
+  function removeImage(type, index) {
+    imagesData[type].splice(index, 1); // 指定した要素を削除
+    renderPreviews(type); // 再描画
+    checkFormValidity();  // ボタンの活性状態チェック
+  }
+
+  // 3つの素材すべてに最低1枚以上の画像があるかチェック
   function checkFormValidity() {
     const submitBtn = document.getElementById('submitBtn');
-    if (imagesData.material1 && imagesData.material2 && imagesData.material3) {
+    if (imagesData.material1.length > 0 && imagesData.material2.length > 0 && imagesData.material3.length > 0) {
       submitBtn.disabled = false;
     } else {
       submitBtn.disabled = true;
     }
   }
 
+  // フォーム送信
   function submitForm() {
     document.getElementById('submitBtn').disabled = true;
     document.getElementById('loadingMsg').style.display = 'block';
     
-    // Fetch APIを使ってGASにデータを送信
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
       body: JSON.stringify(imagesData),
       headers: {
-        'Content-Type': 'text/plain' // GASのdoPostでパースしやすくするためtext/plainで送ります
+        'Content-Type': 'text/plain'
       }
     })
     .then(response => response.json())
@@ -109,8 +153,8 @@
         document.getElementById('formContainer').innerHTML = `
           <div style="text-align: center; padding: 40px 10px;">
             <h2 style="color: #00c73c;">送信完了</h2>
-            <p>写真の提出が正常に記録されました。</p>
-            <p>ご協力ありがとうございました。ブラウザを閉じて終了してください。</p>
+            <p>すべての写真が正常に記録されました。</p>
+            <p>ブラウザを閉じて終了してください。</p>
           </div>
         `;
       } else {

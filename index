@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>写真提出フォーム</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; background-color: #f5f5f5; color: #333; }
+    .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #00c73c; }
+    .photo-section { margin-bottom: 25px; padding: 15px; border: 1px solid #ddd; border-radius: 6px; }
+    .photo-section h3 { margin-top: 0; font-size: 16px; }
+    .upload-btn { display: block; width: 100%; padding: 12px; background-color: #007bff; color: white; text-align: center; border-radius: 4px; cursor: pointer; font-weight: bold; box-sizing: border-box; }
+    input[type="file"] { display: none; }
+    .preview { width: 100%; max-height: 200px; object-fit: contain; margin-top: 10px; display: none; border-radius: 4px; }
+    .submit-btn { width: 100%; padding: 15px; background-color: #00c73c; color: white; border: none; border-radius: 4px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .submit-btn:disabled { background-color: #cccccc; cursor: not-allowed; }
+    .loading { display: none; text-align: center; font-weight: bold; color: #666; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="formContainer">
+  <h2>写真提出フォーム</h2>
+  <p style="font-size: 12px; color: red; text-align: center;">※3種類すべての撮影が必要です</p>
+  
+  <form id="photoForm">
+    <div class="photo-section">
+      <h3>① 素材1の撮影 <span style="color:red;">*</span></h3>
+      <label class="upload-btn">
+        写真を撮影する
+        <input type="file" accept="image/*" capture="environment" id="file1" onchange="previewImage(this, 'preview1')">
+      </label>
+      <img id="preview1" class="preview">
+    </div>
+
+    <div class="photo-section">
+      <h3>② 素材2の撮影 <span style="color:red;">*</span></h3>
+      <label class="upload-btn">
+        写真を撮影する
+        <input type="file" accept="image/*" capture="environment" id="file2" onchange="previewImage(this, 'preview2')">
+      </label>
+      <img id="preview2" class="preview">
+    </div>
+
+    <div class="photo-section">
+      <h3>③ 素材3の撮影 <span style="color:red;">*</span></h3>
+      <label class="upload-btn">
+        写真を撮影する
+        <input type="file" accept="image/*" capture="environment" id="file3" onchange="previewImage(this, 'preview3')">
+      </label>
+      <img id="preview3" class="preview">
+    </div>
+
+    <button type="button" class="submit-btn" id="submitBtn" onclick="submitForm()" disabled>連動して送信する</button>
+    <div class="loading" id="loadingMsg">送信中...ブラウザを閉じずに待ってください。</div>
+  </form>
+</div>
+
+<script>
+  // 【最重要】ここに新しくデプロイしたGASのWebアプリURL（/exec）を貼り付けてください
+  const GAS_WEB_APP_URL = 'ここにGASの新しいURLをペースト';
+
+  const imagesData = { material1: null, material2: null, material3: null };
+
+  function previewImage(input, previewId) {
+    const file = input.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const preview = document.getElementById(previewId);
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        
+        if (previewId === 'preview1') imagesData.material1 = e.target.result;
+        if (previewId === 'preview2') imagesData.material2 = e.target.result;
+        if (previewId === 'preview3') imagesData.material3 = e.target.result;
+        
+        checkFormValidity();
+      }
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function checkFormValidity() {
+    const submitBtn = document.getElementById('submitBtn');
+    if (imagesData.material1 && imagesData.material2 && imagesData.material3) {
+      submitBtn.disabled = false;
+    } else {
+      submitBtn.disabled = true;
+    }
+  }
+
+  function submitForm() {
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('loadingMsg').style.display = 'block';
+    
+    // Fetch APIを使ってGASにデータを送信
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify(imagesData),
+      headers: {
+        'Content-Type': 'text/plain' // GASのdoPostでパースしやすくするためtext/plainで送ります
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('formContainer').innerHTML = `
+          <div style="text-align: center; padding: 40px 10px;">
+            <h2 style="color: #00c73c;">送信完了</h2>
+            <p>写真の提出が正常に記録されました。</p>
+            <p>ご協力ありがとうございました。ブラウザを閉じて終了してください。</p>
+          </div>
+        `;
+      } else {
+        alert('エラーが発生しました: ' + data.error);
+        resetButton();
+      }
+    })
+    .catch(error => {
+      alert('通信エラーが発生しました: ' + error);
+      resetButton();
+    });
+  }
+
+  function resetButton() {
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('loadingMsg').style.display = 'none';
+  }
+</script>
+</body>
+</html>

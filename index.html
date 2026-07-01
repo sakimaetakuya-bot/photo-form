@@ -32,7 +32,7 @@
   
   <form id="photoForm">
     <div class="photo-section">
-      <h3>① 素材1の撮影 <span style="color:red;">*</span></h3>
+      <h3>① ハイドロボールの撮影 <span style="color:red;">*</span></h3>
       <label class="upload-btn">
         写真を撮影・追加する
         <input type="file" accept="image/*" capture="environment" multiple id="file1" onchange="addImages(this, 'material1')">
@@ -41,7 +41,7 @@
     </div>
 
     <div class="photo-section">
-      <h3>② 素材2の撮影 <span style="color:red;">*</span></h3>
+      <h3>② カーボンの撮影 <span style="color:red;">*</span></h3>
       <label class="upload-btn">
         写真を撮影・追加する
         <input type="file" accept="image/*" capture="environment" multiple id="file2" onchange="addImages(this, 'material2')">
@@ -50,7 +50,7 @@
     </div>
 
     <div class="photo-section">
-      <h3>③ 素材3の撮影 <span style="color:red;">*</span></h3>
+      <h3>③ ゼオライトの撮影 <span style="color:red;">*</span></h3>
       <label class="upload-btn">
         写真を撮影・追加する
         <input type="file" accept="image/*" capture="environment" multiple id="file3" onchange="addImages(this, 'material3')">
@@ -65,7 +65,7 @@
 
 <script>
   // 【最重要】ここに新しくデプロイしたGASのWebアプリURL（/exec）を貼り付けてください
-  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby9fqnGMsoNGMoeF5gMlnURTBEP0_oVok42-mXJbcjJtl-dAXPbzHc6dLL_vmNtCmnk/exec';
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbywPIpaL1bOOhshLhL0hd3rW9sChukseFDkdvm0QEJkDOg0XqQK2xvqOnfEV2_dr0LY/exec';
 
   // 画像データを配列で管理する構造に変更
   const imagesData = { material1: [], material2: [], material3: [] };
